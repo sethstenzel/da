@@ -22,7 +22,7 @@ fn run() -> Result<()> {
 
         [cmd, alias, path] if cmd == "add" => commands::add(&db, alias, path)?,
 
-        [cmd] if cmd == "ls" => commands::list(&db)?,
+        [cmd] if cmd == "ls" || cmd == "list" => commands::list(&db)?,
 
         [cmd, alias] if cmd == "delete" || cmd == "remove" || cmd == "del" => {
             commands::delete(&db, alias)?
@@ -48,6 +48,8 @@ fn run() -> Result<()> {
         // da cmds / da cmd alone lists all open commands
         [cmd] if matches!(cmd.as_str(), "cmds" | "cmd") => commands::list_commands(&db)?,
 
+        [cmd] if cmd == "shell-init" => commands::shell_init(),
+
         [cmd] if cmd == "export" => commands::export(&db)?,
 
         [cmd, file] if cmd == "import" => commands::import(&db, file)?,
@@ -68,11 +70,12 @@ fn print_usage() {
     println!("  da <alias>                        # print mapped path");
     println!("  da <alias> -<command>             # open path with a command");
     println!("  da delete|remove|del <alias>      # delete alias");
-    println!("  da ls                             # list all aliases");
+    println!("  da ls                             # list all aliases  (also: list)");
     println!("  da <text>                         # fuzzy search");
     println!("  da command ls                     # list open commands  (also: cmd, cmds, commands)");
     println!("  da command add <name> <exe>       # add/update a command");
     println!("  da command delete <name>          # delete a command");
     println!("  da export                         # export aliases.json and commands.json to current dir");
     println!("  da import <file>                  # import aliases or commands from a .json export file");
+    println!("  da shell-init                     # show how to add 'dacd' to your PowerShell profile");
 }

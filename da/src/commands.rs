@@ -5,9 +5,9 @@ use std::io::{self, Write};
 use crate::db::{Alias, Command, Db};
 
 const RESERVED: &[&str] = &[
-    "add", "ls", "delete", "remove", "del",
+    "add", "ls", "list", "delete", "remove", "del",
     "command", "commands", "cmd", "cmds",
-    "export", "import",
+    "export", "import", "shell-init",
 ];
 
 #[derive(Serialize, Deserialize)]
@@ -50,7 +50,7 @@ pub fn add(db: &Db, alias: &str, path: &str) -> Result<()> {
 }
 
 pub fn lookup_or_search(db: &Db, text: &str) -> Result<()> {
-    match db.get(text)? {
+    match resolve_alias_path(db, text)? {
         Some(path) => {
             println!("{}", path);
             Ok(())
@@ -60,9 +60,9 @@ pub fn lookup_or_search(db: &Db, text: &str) -> Result<()> {
 }
 
 pub fn run_open_command(db: &Db, alias: &str, cmd_name: &str) -> Result<()> {
-    let path = db
-        .get(alias)?
-        .with_context(|| format!("alias '{}' not found", alias))?;
+    let base_alias = alias_base(alias);
+    let path = resolve_alias_path(db, alias)?
+        .with_context(|| format!("alias '{}' not found", base_alias))?;
     let executable = db
         .get_command(cmd_name)?
         .with_context(|| format!("open command '-{}' not found — use 'da commands ls' to see available commands", cmd_name))?;
@@ -305,6 +305,19 @@ mod tests {
     }
 }
 
+pub fn shell_init() {
+    println!("To enable 'dacd <alias>' for changing directories, add the following");
+    println!("function to your PowerShell profile(s):");
+    println!();
+    println!("  function dacd {{ if (-not $args[0]) {{ Write-Host \"Usage: dacd <alias>\"; return }}; $path = da $args[0]; if ($LASTEXITCODE -eq 0) {{ Set-Location $path }} }}");
+    println!();
+    println!("Profile locations:");
+    println!("  PowerShell 5 : $HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1");
+    println!("  PowerShell 7+: $HOME\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1");
+    println!();
+    println!("Or open each profile with 'notepad $PROFILE' and paste the line in.");
+}
+
 pub fn export(db: &Db) -> Result<()> {
     let ts = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
     let aliases_file = format!("aliases_{ts}.json");
@@ -353,6 +366,27 @@ pub fn import(db: &Db, file: &str) -> Result<()> {
         other => bail!("unknown export type '{other}' — expected 'aliases' or 'commands'"),
     }
     Ok(())
+}
+
+fn alias_base(input: &str) -> &str {
+    input.find(['\\', '/']).map_or(input, |pos| &input[..pos])
+}
+
+fn resolve_alias_path(db: &Db, input: &str) -> Result<Option<String>> {
+    let (alias, subpath) = match input.find(['\\', '/']) {
+        Some(pos) => (&input[..pos], Some(&input[pos + 1..])),
+        None => (input, None),
+    };
+    match db.get(alias)? {
+        Some(base) => {
+            let full = match subpath {
+                Some(sub) => std::path::Path::new(&base).join(sub).to_string_lossy().into_owned(),
+                None => base,
+            };
+            Ok(Some(full))
+        }
+        None => Ok(None),
+    }
 }
 
 fn expand_env_vars(input: &str) -> String {
