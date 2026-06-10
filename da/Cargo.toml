@@ -1,6 +1,6 @@
 [package]
 name = "da"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 authors = ["Seth Stenzel"]
 description = "Directory alias manager — map short names to paths and open them with any tool"

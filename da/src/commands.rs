@@ -66,10 +66,22 @@ pub fn run_open_command(db: &Db, alias: &str, cmd_name: &str) -> Result<()> {
     let executable = db
         .get_command(cmd_name)?
         .with_context(|| format!("open command '-{}' not found — use 'da commands ls' to see available commands", cmd_name))?;
+    // On Windows, route through cmd /C so .cmd/.bat scripts (e.g. VS Code's `code.cmd`)
+    // are resolved correctly — CreateProcess alone does not expand PATHEXT.
+    // Using status() (not spawn()) keeps da alive until the child exits, which gives
+    // TUI apps like nvim exclusive access to the terminal.
+    #[cfg(windows)]
+    std::process::Command::new("cmd")
+        .args(["/C", executable.as_str(), path.as_str()])
+        .status()
+        .with_context(|| format!("failed to launch '{}' with path '{}'", executable, path))?;
+
+    #[cfg(not(windows))]
     std::process::Command::new(&executable)
         .arg(&path)
-        .spawn()
+        .status()
         .with_context(|| format!("failed to launch '{}' with path '{}'", executable, path))?;
+
     Ok(())
 }
 
