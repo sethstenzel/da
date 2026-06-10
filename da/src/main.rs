@@ -48,6 +48,10 @@ fn run() -> Result<()> {
         // da cmds / da cmd alone lists all open commands
         [cmd] if matches!(cmd.as_str(), "cmds" | "cmd") => commands::list_commands(&db)?,
 
+        [cmd] if cmd == "export" => commands::export(&db)?,
+
+        [cmd, file] if cmd == "import" => commands::import(&db, file)?,
+
         // exact match prints the path; anything else is treated as a fuzzy search
         [text] => commands::lookup_or_search(&db, text)?,
 
@@ -59,16 +63,16 @@ fn run() -> Result<()> {
 
 fn print_usage() {
     println!("Usage:");
-    println!("  da add                            # interactive");
-    println!("  da add <alias> <path>             # non-interactive");
+    println!("  da add                            # add alias (interactive)");
+    println!("  da add <alias> <path>             # add alias");
     println!("  da <alias>                        # print mapped path");
     println!("  da <alias> -<command>             # open path with a command");
-    println!("  da delete <alias>                 # delete alias");
-    println!("  da remove <alias>                 # delete alias");
-    println!("  da del <alias>                    # delete alias");
+    println!("  da delete|remove|del <alias>      # delete alias");
     println!("  da ls                             # list all aliases");
     println!("  da <text>                         # fuzzy search");
-    println!("  da command ls                    # list open commands  (also: cmd, cmds)");
-    println!("  da command add <name> <exe>      # add/update a command");
-    println!("  da command delete <name>         # delete a command");
+    println!("  da command ls                     # list open commands  (also: cmd, cmds, commands)");
+    println!("  da command add <name> <exe>       # add/update a command");
+    println!("  da command delete <name>          # delete a command");
+    println!("  da export                         # export aliases.json and commands.json to current dir");
+    println!("  da import <file>                  # import aliases or commands from a .json export file");
 }

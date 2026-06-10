@@ -1,16 +1,19 @@
 use anyhow::{Context, Result};
 use rusqlite::{Connection, params};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub struct Db {
     conn: Connection,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Alias {
     pub name: String,
     pub path: String,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Command {
     pub name: String,
     pub executable: String,

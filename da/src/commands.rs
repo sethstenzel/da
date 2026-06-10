@@ -1,9 +1,28 @@
 use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 
 use crate::db::{Alias, Command, Db};
 
-const RESERVED: &[&str] = &["add", "ls", "delete", "remove", "del", "command", "commands", "cmd", "cmds"];
+const RESERVED: &[&str] = &[
+    "add", "ls", "delete", "remove", "del",
+    "command", "commands", "cmd", "cmds",
+    "export", "import",
+];
+
+#[derive(Serialize, Deserialize)]
+struct AliasExport {
+    #[serde(rename = "type")]
+    kind: String,
+    aliases: Vec<Alias>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CommandExport {
+    #[serde(rename = "type")]
+    kind: String,
+    commands: Vec<Command>,
+}
 
 fn check_reserved(alias: &str) -> Result<()> {
     if RESERVED.contains(&alias) {
@@ -178,6 +197,150 @@ mod tests {
         let db = db();
         assert!(add(&db, "my-project", "C:\\projects\\foo").is_ok());
     }
+
+    // --- export / import ---
+
+    #[test]
+    fn export_is_reserved() {
+        let db = db();
+        assert!(add(&db, "export", "C:\\test").is_err());
+    }
+
+    #[test]
+    fn import_is_reserved() {
+        let db = db();
+        assert!(add(&db, "import", "C:\\test").is_err());
+    }
+
+    #[test]
+    fn import_aliases_roundtrip() {
+        let db = db();
+        db.add("foo", "C:\\foo").unwrap();
+        db.add("bar", "C:\\bar").unwrap();
+
+        let aliases = db.list().unwrap();
+        let json = serde_json::to_string(&AliasExport { kind: "aliases".into(), aliases }).unwrap();
+
+        let db2 = Db::open_in_memory().unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let export: AliasExport = serde_json::from_value(value).unwrap();
+        for a in export.aliases {
+            db2.add(&a.name, &a.path).unwrap();
+        }
+
+        assert_eq!(db2.get("foo").unwrap(), Some("C:\\foo".into()));
+        assert_eq!(db2.get("bar").unwrap(), Some("C:\\bar".into()));
+    }
+
+    #[test]
+    fn import_commands_roundtrip() {
+        let db = db();
+        db.add_command("rider", "rider64").unwrap();
+
+        let commands = db.list_commands().unwrap();
+        let json = serde_json::to_string(&CommandExport { kind: "commands".into(), commands }).unwrap();
+
+        let db2 = Db::open_in_memory().unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let export: CommandExport = serde_json::from_value(value).unwrap();
+        for c in export.commands {
+            db2.add_command(&c.name, &c.executable).unwrap();
+        }
+
+        assert_eq!(db2.get_command("rider").unwrap(), Some("rider64".into()));
+    }
+
+    #[test]
+    fn import_overwrites_existing_alias() {
+        let db = db();
+        db.add("foo", "C:\\old").unwrap();
+
+        let aliases = vec![Alias { name: "foo".into(), path: "C:\\new".into() }];
+        let json = serde_json::to_string(&AliasExport { kind: "aliases".into(), aliases }).unwrap();
+
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let export: AliasExport = serde_json::from_value(value).unwrap();
+        for a in export.aliases {
+            db.add(&a.name, &a.path).unwrap();
+        }
+
+        assert_eq!(db.get("foo").unwrap(), Some("C:\\new".into()));
+    }
+
+    #[test]
+    fn import_overwrites_existing_command() {
+        let db = db();
+        db.add_command("code", "old-code").unwrap();
+
+        let commands = vec![Command { name: "code".into(), executable: "new-code".into() }];
+        let json = serde_json::to_string(&CommandExport { kind: "commands".into(), commands }).unwrap();
+
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let export: CommandExport = serde_json::from_value(value).unwrap();
+        for c in export.commands {
+            db.add_command(&c.name, &c.executable).unwrap();
+        }
+
+        assert_eq!(db.get_command("code").unwrap(), Some("new-code".into()));
+    }
+
+    #[test]
+    fn import_unknown_type_errors() {
+        let json = r#"{"type":"bogus","data":[]}"#;
+        let value: serde_json::Value = serde_json::from_str(json).unwrap();
+        let kind = value["type"].as_str().unwrap_or("");
+        assert!(!matches!(kind, "aliases" | "commands"));
+    }
+}
+
+pub fn export(db: &Db) -> Result<()> {
+    let ts = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
+    let aliases_file = format!("aliases_{ts}.json");
+    let commands_file = format!("commands_{ts}.json");
+
+    let aliases = db.list()?;
+    let alias_count = aliases.len();
+    let json = serde_json::to_string_pretty(&AliasExport { kind: "aliases".into(), aliases })?;
+    std::fs::write(&aliases_file, &json).with_context(|| format!("failed to write {aliases_file}"))?;
+    println!("Exported {alias_count} aliases to {aliases_file}");
+
+    let commands = db.list_commands()?;
+    let cmd_count = commands.len();
+    let json = serde_json::to_string_pretty(&CommandExport { kind: "commands".into(), commands })?;
+    std::fs::write(&commands_file, &json).with_context(|| format!("failed to write {commands_file}"))?;
+    println!("Exported {cmd_count} commands to {commands_file}");
+
+    Ok(())
+}
+
+pub fn import(db: &Db, file: &str) -> Result<()> {
+    let content = std::fs::read_to_string(file)
+        .with_context(|| format!("failed to read '{file}'"))?;
+    let value: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("'{file}' is not valid JSON"))?;
+    let kind = value["type"].as_str().unwrap_or("").to_string();
+    match kind.as_str() {
+        "aliases" => {
+            let export: AliasExport = serde_json::from_value(value)
+                .context("invalid aliases export format")?;
+            let count = export.aliases.len();
+            for a in export.aliases {
+                db.add(&a.name, &a.path)?;
+            }
+            println!("Imported {count} aliases from '{file}'");
+        }
+        "commands" => {
+            let export: CommandExport = serde_json::from_value(value)
+                .context("invalid commands export format")?;
+            let count = export.commands.len();
+            for c in export.commands {
+                db.add_command(&c.name, &c.executable)?;
+            }
+            println!("Imported {count} commands from '{file}'");
+        }
+        other => bail!("unknown export type '{other}' — expected 'aliases' or 'commands'"),
+    }
+    Ok(())
 }
 
 fn expand_env_vars(input: &str) -> String {
