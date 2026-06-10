@@ -2,12 +2,18 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building release binary..."
-Set-Location "$PSScriptRoot\da"
-cargo build --release
+$origin = Get-Location
 
-Write-Host "Building installer..."
-Set-Location "$PSScriptRoot\installer"
-& "C:\Program Files (x86)\NSIS\makensis.exe" da.nsi
+try {
+    Write-Host "Building release binary..."
+    Set-Location "$PSScriptRoot\da"
+    cargo build --release
 
-Write-Host "Done. Installer: $PSScriptRoot\installer\$(Get-ChildItem '*.exe' | Sort-Object LastWriteTime | Select-Object -Last 1 -ExpandProperty Name)"
+    Write-Host "Building installer..."
+    Set-Location "$PSScriptRoot\installer"
+    & "C:\Program Files (x86)\NSIS\makensis.exe" da.nsi
+
+    Write-Host "Done. Installer: $PSScriptRoot\installer\$(Get-ChildItem '*.exe' | Sort-Object LastWriteTime | Select-Object -Last 1 -ExpandProperty Name)"
+} finally {
+    Set-Location $origin
+}
