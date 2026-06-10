@@ -9,7 +9,7 @@ winget install NSIS.NSIS
 ```
 
 ### 2. Release binary
-Build `da.exe` in release mode from the `da/` directory:
+Build `da.exe` from the `da/` directory:
 ```powershell
 cd da
 cargo build --release
@@ -18,38 +18,37 @@ cd ..
 
 ---
 
-## Building the installer
+## Build the installer
 
-From the `installer/` directory, run:
+From the repo root:
 ```powershell
 cd installer
-makensis da.nsi
+& "C:\Program Files (x86)\NSIS\makensis.exe" da.nsi
 ```
 
-This produces `installer\da-0.1.0-installer.exe`.
+This produces `installer\da-<version>-installer.exe`.
+
+> `makensis` is not added to PATH by default — use the full path above.
 
 ---
 
 ## What the installer does
 
-- Installs `da.exe` to `%LOCALAPPDATA%\Programs\da\`
-- Appends that directory to the **user PATH** (no admin required)
-- Broadcasts a `WM_WININICHANGE` message so running terminals pick up the PATH change
+- Installs `da.exe`, `path_add.ps1`, and `path_remove.ps1` to `%LOCALAPPDATA%\Programs\da\`
+- Appends that directory to the **user PATH** via PowerShell (no admin required, no 1024-char limit)
 - Writes an entry to **Add/Remove Programs** under the current user
 
 ## What the uninstaller does
 
-- Removes all occurrences of the install directory from the user PATH
-- Deletes `da.exe` and the install directory
+- Removes the install directory from the user PATH
+- Deletes all installed files and the install directory
 - Removes the Add/Remove Programs entry
 
 ---
 
 ## Updating the version
 
-The version is defined once at the top of `installer/da.nsi`:
-```nsis
-!define VERSION "0.1.0"
-```
+Update the version in both files to keep them in sync:
 
-Update this to match the version in `da/Cargo.toml` before building a new release.
+1. `da/Cargo.toml` — `version = "x.y.z"`
+2. `installer/da.nsi` — `!define VERSION "x.y.z"`
