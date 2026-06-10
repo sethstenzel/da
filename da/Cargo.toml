@@ -2,6 +2,8 @@
 name = "da"
 version = "0.1.0"
 edition = "2024"
+authors = ["Seth Stenzel"]
+description = "Directory alias manager — map short names to paths and open them with any tool"
 
 [[bin]]
 name = "da"

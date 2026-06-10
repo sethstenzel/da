@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 use crate::db::{Alias, Command, Db};
 
-const RESERVED: &[&str] = &["add", "ls", "delete", "remove", "del", "commands"];
+const RESERVED: &[&str] = &["add", "ls", "delete", "remove", "del", "command", "commands", "cmd", "cmds"];
 
 fn check_reserved(alias: &str) -> Result<()> {
     if RESERVED.contains(&alias) {
@@ -129,6 +129,55 @@ fn prompt(label: &str) -> Result<String> {
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
     Ok(buf.trim().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::Db;
+
+    fn db() -> Db {
+        Db::open_in_memory().unwrap()
+    }
+
+    // --- reserved name guard: all reserved words must be rejected ---
+
+    #[test]
+    fn reserved_words_are_rejected() {
+        let db = db();
+        for word in RESERVED {
+            let result = add(&db, word, "C:\\some\\path");
+            assert!(result.is_err(), "'{word}' should be rejected as an alias");
+        }
+    }
+
+    // --- spot-check the new aliases added in this session ---
+
+    #[test]
+    fn cmd_is_reserved() {
+        let db = db();
+        assert!(add(&db, "cmd", "C:\\test").is_err());
+    }
+
+    #[test]
+    fn cmds_is_reserved() {
+        let db = db();
+        assert!(add(&db, "cmds", "C:\\test").is_err());
+    }
+
+    #[test]
+    fn commands_is_reserved() {
+        let db = db();
+        assert!(add(&db, "commands", "C:\\test").is_err());
+    }
+
+    // --- non-reserved names must be accepted ---
+
+    #[test]
+    fn normal_alias_is_accepted() {
+        let db = db();
+        assert!(add(&db, "my-project", "C:\\projects\\foo").is_ok());
+    }
 }
 
 fn expand_env_vars(input: &str) -> String {
