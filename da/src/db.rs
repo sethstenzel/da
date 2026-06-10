@@ -142,11 +142,9 @@ const SCHEMA: &str = "
         name       TEXT PRIMARY KEY NOT NULL,
         executable TEXT NOT NULL
     );
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('e',        'explorer');
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('explorer', 'explorer');
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('code',     'code');
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('nvim',     'nvim');
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('nano',     'nano');
+    INSERT OR IGNORE INTO commands (name, executable) VALUES ('e',    'explorer');
+    INSERT OR IGNORE INTO commands (name, executable) VALUES ('code', 'code');
+    INSERT OR IGNORE INTO commands (name, executable) VALUES ('nvim', 'nvim');
 ";
 
 #[cfg(test)]
@@ -227,7 +225,7 @@ mod tests {
     fn list_commands_includes_defaults() {
         let db = db();
         let names: Vec<_> = db.list_commands().unwrap().into_iter().map(|c| c.name).collect();
-        for expected in ["e", "explorer", "code", "nvim", "nano"] {
+        for expected in ["e", "code", "nvim"] {
             assert!(names.contains(&expected.to_string()), "missing default command: {expected}");
         }
     }

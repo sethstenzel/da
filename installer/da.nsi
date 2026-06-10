@@ -11,7 +11,7 @@ Unicode True
 
 !define APPNAME   "da"
 !define PUBLISHER "Seth Stenzel"
-!define VERSION   "0.3.0"
+!define VERSION   "0.3.1"
 !define BINARY    "..\da\target\release\da.exe"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
