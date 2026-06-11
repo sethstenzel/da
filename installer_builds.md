@@ -51,7 +51,7 @@ sudo dpkg -i da/target/debian/da_<version>_amd64.deb
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.bashrc   # or ~/.zshrc
 ```
 
@@ -69,7 +69,7 @@ makepkg -si
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.bashrc   # or ~/.zshrc
 ```
 
@@ -94,7 +94,7 @@ The formula is at `installer/homebrew/da.rb`. Before publishing:
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.zshrc   # or ~/.bashrc
 ```
 

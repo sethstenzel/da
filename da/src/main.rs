@@ -48,7 +48,7 @@ fn run() -> Result<()> {
         // da cmds / da cmd alone lists all open commands
         [cmd] if matches!(cmd.as_str(), "cmds" | "cmd") => commands::list_commands(&db)?,
 
-        [cmd] if cmd == "shell-init" => commands::shell_init(),
+        [cmd] if cmd == "shell-init" => commands::shell_init()?,
 
         [cmd] if cmd == "export" => commands::export(&db)?,
 
@@ -77,5 +77,5 @@ fn print_usage() {
     println!("  da command delete <name>          # delete a command");
     println!("  da export                         # export aliases.json and commands.json to current dir");
     println!("  da import <file>                  # import aliases or commands from a .json export file");
-    println!("  da shell-init                     # show how to add 'dacd' to your PowerShell profile");
+    println!("  da shell-init                     # install 'dacd' function into your shell profile(s)");
 }

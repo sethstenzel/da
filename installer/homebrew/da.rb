@@ -1,7 +1,7 @@
 class Da < Formula
   desc "Directory alias manager — map short names to paths and open them with any tool"
   homepage "https://github.com/sethstenzel/da"  # TODO: update with real repo URL
-  url "https://github.com/sethstenzel/da/archive/v0.4.4.tar.gz"
+  url "https://github.com/sethstenzel/da/archive/v0.4.5.tar.gz"
   sha256 "PLACEHOLDER"  # Run: curl -L <url> | shasum -a 256
   license "MIT"
 

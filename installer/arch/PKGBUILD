@@ -1,6 +1,6 @@
 # Maintainer: Seth Stenzel <seth.c.stenzel@gmail.com>
 pkgname=da
-pkgver=0.4.4
+pkgver=0.4.5
 pkgrel=1
 pkgdesc="Directory alias manager — map short names to paths and open them with any tool"
 arch=('x86_64' 'aarch64')

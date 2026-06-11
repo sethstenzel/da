@@ -305,32 +305,86 @@ mod tests {
     }
 }
 
-pub fn shell_init() {
+pub fn shell_init() -> Result<()> {
     #[cfg(windows)]
     {
-        println!("Add the following to your PowerShell profile(s) to enable 'dacd <alias>':");
+        let home = dirs::home_dir().context("cannot determine home directory")?;
+        let profiles = [
+            home.join("Documents").join("WindowsPowerShell").join("Microsoft.PowerShell_profile.ps1"),
+            home.join("Documents").join("PowerShell").join("Microsoft.PowerShell_profile.ps1"),
+        ];
+        let fn_line = r#"function dacd { if (-not $args[0]) { Write-Host "Usage: dacd <alias>"; return }; $path = da $args[0]; if ($LASTEXITCODE -eq 0) { Set-Location $path } }"#;
+
+        for profile in &profiles {
+            if let Some(parent) = profile.parent() {
+                std::fs::create_dir_all(parent)
+                    .with_context(|| format!("failed to create {}", parent.display()))?;
+            }
+            if !profile.exists() {
+                std::fs::write(profile, "")
+                    .with_context(|| format!("failed to create {}", profile.display()))?;
+            }
+            let content = std::fs::read_to_string(profile)
+                .with_context(|| format!("failed to read {}", profile.display()))?;
+            let filtered = content
+                .lines()
+                .filter(|l| !l.contains("function dacd"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let new_content = if filtered.trim().is_empty() {
+                format!("{fn_line}\n")
+            } else {
+                format!("{}\n{fn_line}\n", filtered.trim_end())
+            };
+            std::fs::write(profile, new_content)
+                .with_context(|| format!("failed to write {}", profile.display()))?;
+            println!("Installed 'dacd' in {}", profile.display());
+        }
         println!();
-        println!("  function dacd {{ if (-not $args[0]) {{ Write-Host \"Usage: dacd <alias>\"; return }}; $path = da $args[0]; if ($LASTEXITCODE -eq 0) {{ Set-Location $path }} }}");
-        println!();
-        println!("Profile locations:");
-        println!("  PowerShell 5 : $HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1");
-        println!("  PowerShell 7+: $HOME\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1");
-        println!();
-        println!("Or open a profile with: notepad $PROFILE");
+        println!("Restart your terminal or reload with:  . $PROFILE");
     }
 
     #[cfg(not(windows))]
     {
-        println!("Add the following to your shell profile(s) to enable 'dacd <alias>':");
+        let home = dirs::home_dir().context("cannot determine home directory")?;
+        let candidates = [
+            home.join(".bashrc"),
+            home.join(".zshrc"),
+            home.join(".bash_profile"),
+        ];
+        let fn_line = r#"dacd() { if [ -z "$1" ]; then echo "Usage: dacd <alias>"; return; fi; local path; path=$(da "$1"); [ $? -eq 0 ] && cd "$path"; }"#;
+
+        let profiles: Vec<_> = candidates.iter().filter(|p| p.exists()).collect();
+
+        if profiles.is_empty() {
+            println!("No shell profiles found (~/.bashrc, ~/.zshrc, ~/.bash_profile).");
+            println!("Add this line manually to your shell profile:");
+            println!("  {fn_line}");
+            return Ok(());
+        }
+
+        for profile in &profiles {
+            let content = std::fs::read_to_string(profile)
+                .with_context(|| format!("failed to read {}", profile.display()))?;
+            let filtered = content
+                .lines()
+                .filter(|l| !l.starts_with("dacd()"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let new_content = if filtered.trim().is_empty() {
+                format!("{fn_line}\n")
+            } else {
+                format!("{}\n{fn_line}\n", filtered.trim_end())
+            };
+            std::fs::write(profile, new_content)
+                .with_context(|| format!("failed to write {}", profile.display()))?;
+            println!("Installed 'dacd' in {}", profile.display());
+        }
         println!();
-        println!(r#"  dacd() {{ if [ -z "$1" ]; then echo "Usage: dacd <alias>"; return; fi; local path; path=$(da "$1"); [ $? -eq 0 ] && cd "$path"; }}"#);
-        println!();
-        println!("Profile locations:");
-        println!("  bash : ~/.bashrc  (or ~/.bash_profile on macOS)");
-        println!("  zsh  : ~/.zshrc");
-        println!();
-        println!("Then reload with: source ~/.bashrc  (or source ~/.zshrc)");
+        println!("Reload with:  source ~/.bashrc  (or source ~/.zshrc)");
     }
+
+    Ok(())
 }
 
 pub fn export(db: &Db) -> Result<()> {

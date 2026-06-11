@@ -107,22 +107,23 @@ Import overwrites any conflicting aliases or commands. The JSON files include a 
 
 `dacd <alias>` changes your current directory to the alias path. Because `cd` must run in the current shell, `dacd` is a shell function rather than a binary.
 
-**Install automatically (Windows):**
-The installer adds `dacd` to your PowerShell profiles. To add it manually at any time:
-```powershell
-powershell -ExecutionPolicy Bypass -File installer\setup_shell.ps1
-```
-
-**Install automatically (Linux / macOS):**
-```bash
-bash installer/setup_shell.sh
-source ~/.bashrc    # or ~/.zshrc
-```
-
-**See the function to add manually:**
+Run this once after installing `da`:
 ```bash
 da shell-init
 ```
+
+This writes the `dacd` function directly into your shell profiles:
+- **Windows** — both the PowerShell 5 and PowerShell 7 profiles
+- **Linux / macOS** — any of `~/.bashrc`, `~/.zshrc`, `~/.bash_profile` that exist
+
+Then reload your shell:
+```bash
+source ~/.bashrc    # Linux bash
+source ~/.zshrc     # macOS / zsh
+# Windows: restart terminal or run:  . $PROFILE
+```
+
+Running `da shell-init` again is safe — it replaces the existing line rather than appending a duplicate.
 
 ---
 

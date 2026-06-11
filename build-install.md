@@ -46,7 +46,7 @@ This produces `installer\da-<version>-installer.exe`. Run it to install `da.exe`
 
 The installer optionally adds the `dacd` shell function to your PowerShell profiles (checked by default). You can also run this step manually at any time:
 ```powershell
-powershell -ExecutionPolicy Bypass -File installer\setup_shell.ps1
+da shell-init
 ```
 
 ### Option B — Build and install manually
@@ -60,7 +60,7 @@ Copy-Item target\release\da.exe "$env:LOCALAPPDATA\Programs\da\da.exe"
 ```
 Add `dacd` to your PowerShell profiles:
 ```powershell
-powershell -ExecutionPolicy Bypass -File ..\installer\setup_shell.ps1
+da shell-init
 ```
 Restart your terminal.
 
@@ -88,7 +88,7 @@ sudo dpkg -i da/target/debian/da_*.deb
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.bashrc    # or ~/.zshrc
 ```
 
@@ -105,7 +105,7 @@ This downloads the source, builds `da`, and installs it to `/usr/bin/da`.
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.bashrc    # or ~/.zshrc
 ```
 
@@ -128,7 +128,7 @@ sudo cp da/target/release/da /opt/homebrew/bin/da
 
 ### Shell integration (dacd)
 ```bash
-bash installer/setup_shell.sh
+da shell-init
 source ~/.zshrc     # or ~/.bashrc
 ```
 
