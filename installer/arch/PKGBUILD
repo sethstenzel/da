@@ -1,0 +1,24 @@
+# Maintainer: Seth Stenzel <seth.c.stenzel@gmail.com>
+pkgname=da
+pkgver=0.4.4
+pkgrel=1
+pkgdesc="Directory alias manager — map short names to paths and open them with any tool"
+arch=('x86_64' 'aarch64')
+url="https://github.com/sethstenzel/da"
+license=('MIT')
+depends=()
+makedepends=('rust' 'cargo')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/sethstenzel/da/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Replace with real sha256 after publishing a release
+
+build() {
+    cd "$pkgname-$pkgver/da"
+    cargo build --release --locked
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -Dm755 "da/target/release/da" "$pkgdir/usr/bin/da"
+    install -Dm755 "installer/setup_shell.sh"  "$pkgdir/usr/share/da/setup_shell.sh"
+    install -Dm755 "installer/remove_shell.sh" "$pkgdir/usr/share/da/remove_shell.sh"
+}

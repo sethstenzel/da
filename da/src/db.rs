@@ -24,9 +24,8 @@ impl Db {
         let path = db_path();
         let conn = Connection::open(&path)
             .with_context(|| format!("failed to open database at {}", path.display()))?;
-
         conn.execute_batch(SCHEMA).context("failed to initialize schema")?;
-
+        seed_platform_commands(&conn).context("failed to seed platform commands")?;
         Ok(Self { conn })
     }
 
@@ -142,16 +141,27 @@ const SCHEMA: &str = "
         name       TEXT PRIMARY KEY NOT NULL,
         executable TEXT NOT NULL
     );
-    INSERT OR IGNORE INTO commands (name, executable) VALUES ('e',    'explorer');
     INSERT OR IGNORE INTO commands (name, executable) VALUES ('code', 'code');
     INSERT OR IGNORE INTO commands (name, executable) VALUES ('nvim', 'nvim');
 ";
+
+fn seed_platform_commands(conn: &Connection) -> Result<()> {
+    // 'e' opens the native file manager — executable differs per OS
+    #[cfg(windows)]
+    conn.execute("INSERT OR IGNORE INTO commands (name, executable) VALUES ('e', 'explorer')", [])?;
+    #[cfg(target_os = "macos")]
+    conn.execute("INSERT OR IGNORE INTO commands (name, executable) VALUES ('e', 'open')", [])?;
+    #[cfg(target_os = "linux")]
+    conn.execute("INSERT OR IGNORE INTO commands (name, executable) VALUES ('e', 'xdg-open')", [])?;
+    Ok(())
+}
 
 #[cfg(test)]
 impl Db {
     pub fn open_in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch(SCHEMA).context("failed to initialize schema")?;
+        seed_platform_commands(&conn).context("failed to seed platform commands")?;
         Ok(Self { conn })
     }
 }

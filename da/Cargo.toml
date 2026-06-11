@@ -1,6 +1,6 @@
 [package]
 name = "da"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 authors = ["Seth Stenzel"]
 description = "Directory alias manager — map short names to paths and open them with any tool"
@@ -16,3 +16,9 @@ rusqlite = { version = "0.40.1", features = ["bundled"] }
 chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[package.metadata.deb]
+maintainer = "Seth Stenzel <seth.c.stenzel@gmail.com>"
+section = "utils"
+priority = "optional"
+assets = [["target/release/da", "usr/bin/", "755"]]

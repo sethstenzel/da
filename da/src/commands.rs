@@ -306,16 +306,31 @@ mod tests {
 }
 
 pub fn shell_init() {
-    println!("To enable 'dacd <alias>' for changing directories, add the following");
-    println!("function to your PowerShell profile(s):");
-    println!();
-    println!("  function dacd {{ if (-not $args[0]) {{ Write-Host \"Usage: dacd <alias>\"; return }}; $path = da $args[0]; if ($LASTEXITCODE -eq 0) {{ Set-Location $path }} }}");
-    println!();
-    println!("Profile locations:");
-    println!("  PowerShell 5 : $HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1");
-    println!("  PowerShell 7+: $HOME\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1");
-    println!();
-    println!("Or open each profile with 'notepad $PROFILE' and paste the line in.");
+    #[cfg(windows)]
+    {
+        println!("Add the following to your PowerShell profile(s) to enable 'dacd <alias>':");
+        println!();
+        println!("  function dacd {{ if (-not $args[0]) {{ Write-Host \"Usage: dacd <alias>\"; return }}; $path = da $args[0]; if ($LASTEXITCODE -eq 0) {{ Set-Location $path }} }}");
+        println!();
+        println!("Profile locations:");
+        println!("  PowerShell 5 : $HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1");
+        println!("  PowerShell 7+: $HOME\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1");
+        println!();
+        println!("Or open a profile with: notepad $PROFILE");
+    }
+
+    #[cfg(not(windows))]
+    {
+        println!("Add the following to your shell profile(s) to enable 'dacd <alias>':");
+        println!();
+        println!(r#"  dacd() {{ if [ -z "$1" ]; then echo "Usage: dacd <alias>"; return; fi; local path; path=$(da "$1"); [ $? -eq 0 ] && cd "$path"; }}"#);
+        println!();
+        println!("Profile locations:");
+        println!("  bash : ~/.bashrc  (or ~/.bash_profile on macOS)");
+        println!("  zsh  : ~/.zshrc");
+        println!();
+        println!("Then reload with: source ~/.bashrc  (or source ~/.zshrc)");
+    }
 }
 
 pub fn export(db: &Db) -> Result<()> {
@@ -394,27 +409,55 @@ fn expand_env_vars(input: &str) -> String {
     let mut chars = input.chars().peekable();
     while let Some(c) = chars.next() {
         if c == '%' {
+            // %VAR% style (Windows)
             let mut var = String::new();
             let mut closed = false;
             for inner in chars.by_ref() {
-                if inner == '%' {
-                    closed = true;
-                    break;
-                }
+                if inner == '%' { closed = true; break; }
                 var.push(inner);
             }
             if closed {
                 match std::env::var(&var) {
                     Ok(val) => result.push_str(&val),
-                    Err(_) => {
-                        result.push('%');
-                        result.push_str(&var);
-                        result.push('%');
-                    }
+                    Err(_) => { result.push('%'); result.push_str(&var); result.push('%'); }
                 }
             } else {
                 result.push('%');
                 result.push_str(&var);
+            }
+        } else if c == '$' {
+            // ${VAR} or $VAR style (Unix)
+            if chars.peek() == Some(&'{') {
+                chars.next();
+                let mut var = String::new();
+                let mut closed = false;
+                for inner in chars.by_ref() {
+                    if inner == '}' { closed = true; break; }
+                    var.push(inner);
+                }
+                if closed && !var.is_empty() {
+                    match std::env::var(&var) {
+                        Ok(val) => result.push_str(&val),
+                        Err(_) => { result.push_str("${"); result.push_str(&var); result.push('}'); }
+                    }
+                } else {
+                    result.push_str("${");
+                    result.push_str(&var);
+                }
+            } else {
+                let mut var = String::new();
+                while let Some(&next) = chars.peek() {
+                    if next.is_alphanumeric() || next == '_' { var.push(next); chars.next(); }
+                    else { break; }
+                }
+                if !var.is_empty() {
+                    match std::env::var(&var) {
+                        Ok(val) => result.push_str(&val),
+                        Err(_) => { result.push('$'); result.push_str(&var); }
+                    }
+                } else {
+                    result.push('$');
+                }
             }
         } else {
             result.push(c);

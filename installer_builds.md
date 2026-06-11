@@ -2,53 +2,109 @@
 
 ## Prerequisites
 
-### 1. NSIS 3.x
-Install via winget (no admin required):
-```powershell
-winget install NSIS.NSIS
-```
-
-### 2. Release binary
-Build `da.exe` from the `da/` directory:
-```powershell
-cd da
-cargo build --release
-cd ..
+### Rust toolchain
+Required on all platforms:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 ---
 
-## Build the installer
+## Windows
 
-From the repo root:
+### Additional prerequisites
+- NSIS 3.x: `winget install NSIS.NSIS`
+
+### Build
 ```powershell
-cd installer
-& "C:\Program Files (x86)\NSIS\makensis.exe" da.nsi
+.\build_installer.ps1
 ```
+Produces `installer\da-<version>-installer.exe`.
 
-This produces `installer\da-<version>-installer.exe`.
+> `makensis` is not on PATH by default — the script uses the full path automatically.
 
-> `makensis` is not added to PATH by default — use the full path above.
+### What the installer does
+- Installs `da.exe` to `%LOCALAPPDATA%\Programs\da\`
+- Appends that directory to the user PATH via PowerShell (no admin, no 1024-char limit)
+- Optionally installs the `dacd` shell function to PowerShell 5 and 7 profiles (checked by default)
+- Writes an Add/Remove Programs entry
 
 ---
 
-## What the installer does
+## Linux (Debian / Ubuntu)
 
-- Installs `da.exe`, `path_add.ps1`, and `path_remove.ps1` to `%LOCALAPPDATA%\Programs\da\`
-- Appends that directory to the **user PATH** via PowerShell (no admin required, no 1024-char limit)
-- Writes an entry to **Add/Remove Programs** under the current user
+### Build binary
+```bash
+./build_linux.sh
+```
 
-## What the uninstaller does
+### Build .deb package
+```bash
+cargo install cargo-deb   # one-time
+./build_linux.sh          # will auto-build .deb if cargo-deb is installed
+```
 
-- Removes the install directory from the user PATH
-- Deletes all installed files and the install directory
-- Removes the Add/Remove Programs entry
+### Install .deb
+```bash
+sudo dpkg -i da/target/debian/da_<version>_amd64.deb
+```
+
+### Shell integration (dacd)
+```bash
+bash installer/setup_shell.sh
+source ~/.bashrc   # or ~/.zshrc
+```
+
+---
+
+## Linux (Arch)
+
+The `installer/arch/PKGBUILD` is intended for AUR publication.
+
+### Local build/install via makepkg
+```bash
+cd installer/arch
+makepkg -si
+```
+
+### Shell integration (dacd)
+```bash
+bash installer/setup_shell.sh
+source ~/.bashrc   # or ~/.zshrc
+```
+
+---
+
+## macOS
+
+### Build binary
+```bash
+./build_macos.sh
+```
+
+### Homebrew tap (once published)
+```bash
+brew tap sethstenzel/da
+brew install sethstenzel/da/da
+```
+
+The formula is at `installer/homebrew/da.rb`. Before publishing:
+1. Update the `url` and `homepage` with the real GitHub repo
+2. Replace `sha256 "PLACEHOLDER"` with the actual checksum: `curl -L <url> | shasum -a 256`
+
+### Shell integration (dacd)
+```bash
+bash installer/setup_shell.sh
+source ~/.zshrc   # or ~/.bashrc
+```
 
 ---
 
 ## Updating the version
 
-Update the version in both files to keep them in sync:
+Update in both places to keep them in sync:
 
 1. `da/Cargo.toml` — `version = "x.y.z"`
-2. `installer/da.nsi` — `!define VERSION "x.y.z"`
+2. `installer/da.nsi` — `!define VERSION "x.y.z"` (Windows installer)
+3. `installer/arch/PKGBUILD` — `pkgver=x.y.z`
+4. `installer/homebrew/da.rb` — `url` version + `sha256`
