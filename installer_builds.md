@@ -6,6 +6,7 @@
 Required on all platforms:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.bashrc
 ```
 
 ---
@@ -35,6 +36,7 @@ Produces `installer\da-<version>-installer.exe`.
 
 ### Build binary
 ```bash
+chmod +x build_linux.sh
 ./build_linux.sh
 ```
 
@@ -79,6 +81,7 @@ source ~/.bashrc   # or ~/.zshrc
 
 ### Build binary
 ```bash
+chmod +x build_macos.sh
 ./build_macos.sh
 ```
 

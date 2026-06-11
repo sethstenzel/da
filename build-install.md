@@ -5,6 +5,7 @@
 **Rust toolchain** — install via [rustup](https://rustup.rs):
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.bashrc
 ```
 On Windows you can also use: `winget install Rustlang.Rustup`
 
@@ -70,6 +71,7 @@ Restart your terminal.
 
 ### Build binary
 ```bash
+chmod +x build_linux.sh
 ./build_linux.sh
 ```
 The binary is at `da/target/release/da`.
@@ -115,6 +117,7 @@ source ~/.bashrc    # or ~/.zshrc
 
 ### Build binary
 ```bash
+chmod +x build_macos.sh
 ./build_macos.sh
 ```
 The binary is at `da/target/release/da`.
